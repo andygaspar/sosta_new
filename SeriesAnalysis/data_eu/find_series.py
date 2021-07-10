@@ -2,26 +2,12 @@ from SeriesAnalysis.data_eu import eu_conversion as ec
 import pandas as pd
 import numpy as np
 
-#controllo consistenza aeroporto
-#mean su time senza outliers
-#consistenza time senza outliers
+
+#controllo date inizio-fine stagione
 #aggiungere giorno serie
-
-
-def check_mean(df_call: pd.DataFrame, is_departure: bool, tol: int, max_occurrence: int, min_series_len: int):
-
-    dep_arr = "dep_min" if is_departure else "arr_min"
-
-    airport = df_call[dep_arr].mode().values[0]
-
-    if df_call[df_call[dep_arr] == airport].shape[0] >= min_series_len:
-
-        mean = df_call[dep_arr].mean()
-        if df_call[(df_call[dep_arr] <= mean + tol) & (df_call[dep_arr] >= mean - tol)].shape[0] >= \
-                df_call.shape[0] * max_occurrence:
-            return True
-        else:
-            pass
+#aggiungere referece match
+#aggiungere controllo gf
+#aggiungere make df_db_slot
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
@@ -41,8 +27,31 @@ df_ryr = df_eu_no_duplicates[df_eu_no_duplicates.airline == "RYR"]
 
 df_ryr_1 = df_ryr[df_ryr["week day"] == 1]
 
+def check_mean(df_call: pd.DataFrame, is_departure: bool, tol: int, max_occurrence: float, min_series_len: int):
+
+    dep_arr = "dep_min" if is_departure else "arr_min"
+    airport_dep_arr = "departure" if is_departure else "arrival"
+
+    airport = df_call[airport_dep_arr].mode().values[0]
+    df_call_airport = df_call[df_call[airport_dep_arr] == airport]
+
+    if df_call_airport.shape[0] >= min_series_len:
+        mean = df_call_airport[dep_arr].mean()
+        if df_call_airport[(df_call_airport[dep_arr] <= mean + tol)
+                           & (df_call_airport[dep_arr] >= mean - tol)].shape[0]\
+                >= df_call_airport.shape[0] * max_occurrence:
+            df_call_airp_filtered = df_call_airport[(df_call_airport[dep_arr] <= mean + 400)
+                           & (df_call_airport[dep_arr] >= mean - 400)]
+            mean = df_call_airp_filtered[dep_arr].mean()
+            return True, mean
+        else:
+            return False, 0
+
+    return False, 0
+
+
 tol = 30
-max_occurence = 0.7
+max_occurrence = 0.7
 min_series_len = 5
 
 dep = 0
@@ -56,45 +65,48 @@ for callsign in df_ryr_1.callsign.unique():
 
     # check multiple callsign per day
     if df_call.shape[0] >= min_series_len:
-        if df_call.day.unique().shape[0] == df_call.shape[0]:
+        if df_call.day.unique().shape[0] != df_call.shape[0]:
+
+            df_call = df_call.drop_duplicates("day")
             # print("ok")
 
             # check airport
-            is_departure = df_call.departure.iloc[0] in airport_list
-            is_arrival = df_call.arrival.iloc[0] in airport_list
+        is_departure = df_call.departure.iloc[0] in airport_list
+        is_arrival = df_call.arrival.iloc[0] in airport_list
+        found_arr_series = False
+        found_dep_series = False
 
-            mean_departure = None
-            mean_arrival = None
-
-            # check series arrival
-            if is_arrival:
-
-                mean_arrival = df_call.arr_min.mean()
-                if df_call[(df_call.arr_min <= mean_arrival + tol) & (df_call.arr_min >= mean_arrival - tol)].shape[0] >= \
-                        df_call.shape[0] * max_occurence:
-                    # print("seires arr", df_call.arrival.iloc[0], callsign)
-                    dep +=1
+        mean_departure = None
+        mean_arrival = None
 
 
-            # check series departure
-            if is_departure:
-                mean_departure = df_call.dep_min.mean()
-                if df_call[(df_call.dep_min <= mean_departure + tol) & (df_call.dep_min >= mean_departure - tol)].shape[0] >= \
-                        df_call.shape[0] * max_occurence:
-                    # print("seires dep", df_call.departure.iloc[0], callsign)
-                    arr += 1
+        # check series arrival
+        if is_arrival:
 
-            if is_departure and is_arrival:
+            found_arr_series, mean_arrival = check_mean(df_call, False, tol, max_occurrence, min_series_len)
+            if found_arr_series:
+                arr += 1
+
+
+        # check series departure
+        if is_departure:
+            found_dep_series, mean_departure = check_mean(df_call, True, tol, max_occurrence, min_series_len)
+            if found_dep_series:
+                # print("seires dep", df_call.departure.iloc[0], callsign)
+                dep += 1
+
+        if is_departure and is_arrival:
+            if found_arr_series and found_dep_series:
                 # print("match ", mean_departure, mean_arrival)
                 if mean_departure < mean_arrival:
                     match += 1
 
                 else:
                     issue += 1
-                    print(mean_departure, mean_arrival)
-                    print(df_call)
+                    # print(mean_departure, mean_arrival)
+                    # print(df_call)
 
-        else:
-            # print("issue double")
-            double += 1
-            # print(df_call)
+        # else:
+        #     print("issue double")
+        #     double += 1
+        #     print(df_call)
