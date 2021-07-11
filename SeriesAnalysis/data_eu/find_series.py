@@ -130,6 +130,6 @@ for airline in df_eu.airline.unique():
     i += 1
 
 
-
+db_slot.to_csv("SeriesAnalysis/data_eu/db_slot_test.csv", index_label=False, index=False)
 
 
