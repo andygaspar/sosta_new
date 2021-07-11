@@ -9,10 +9,12 @@ def day_converter(df_in):
     df_in["day"] = df_in["day"].apply(lambda d: str(datetime.datetime.fromtimestamp(d))[:10])
     return df_in
 
-def read_and_set_df_eu():
-    df_eu = pd.read_csv("SeriesAnalysis/data_eu/europe_2019.csv")
 
-    df_eu = df_eu[['icao24', 'dep time', 'departure', 'arr time', 'arrival', 'callsign', 'day', 'week day']]
+def read_and_set_df_eu(year: int):
+    df_eu = pd.read_csv("SeriesAnalysis/data_eu/europe_" + str(year) + ".csv")
+    df_eu = df_eu.drop_duplicates()
+
+    df_eu = df_eu[['icao24', 'dep time', 'departure', 'arr time', 'arrival', 'callsign', 'day', 'week day']].copy()
 
     # from timestamp to datetime
     time_ = df_eu["dep time"].apply(lambda d: datetime.datetime.fromtimestamp(d).time() if not np.isnan(d) else "NaN")
@@ -32,6 +34,10 @@ def read_and_set_df_eu():
 
     # airline
     df_eu["airline"] = df_eu["callsign"].apply(lambda call: call[:3])
+    start = datetime.datetime(year, 3, 31) if year == 2019 else datetime.datetime(year, 4, 1)
+    end = datetime.datetime(year, 10, 27) if year == 2019 else datetime.datetime(year, 10, 28)
+    df_eu = df_eu[(pd.to_datetime(df_eu["day"]) >= start) &
+                  (pd.to_datetime(df_eu["day"]) < end)]
 
     return df_eu
 
