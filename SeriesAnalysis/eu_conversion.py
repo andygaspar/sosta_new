@@ -22,7 +22,7 @@ def read_and_set_df_eu(year: int):
     time_ = df_eu["arr time"].apply(lambda d: datetime.datetime.fromtimestamp(d).time() if not np.isnan(d) else "NaN")
     df_eu["arr time"] = time_
     # removing NaN
-    df_eu = df_eu[(df_eu["dep time"] != "NaN") & (df_eu["arr time"] != "NaN")]
+    df_eu = df_eu[(df_eu["dep_time"] != "NaN") & (df_eu["arr time"] != "NaN")]
     df_eu = df_eu[~pd.isna(df_eu.arrival) & ~pd.isna(df_eu.departure)]
 
 

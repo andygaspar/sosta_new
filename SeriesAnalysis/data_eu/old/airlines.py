@@ -1,10 +1,5 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import multiprocess
-from multiprocess import Pool
-from SeriesAnalysis import funs as f
-import csv
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
