@@ -1,10 +1,16 @@
+import time
+
 from SeriesAnalysis.data_eu import eu_conversion as ec
 import pandas as pd
 import numpy as np
 
+test = pd.read_csv("../media/andrea/OS/Users/Andrea")
+
 # aggiungere reference match
 # aggiungere controllo gf
 # aggiungere make df_db_slot
+
+day_dict = {0: "Sunday", 1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday", }
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
@@ -14,8 +20,8 @@ df_airports = pd.read_csv("SeriesAnalysis/data_eu/airports.csv")
 airport_list = df_airports.airport.to_list()
 
 # df_eu_clean
-# df_eu = ec.read_and_set_df_eu(2019)
-df_eu = pd.read_csv("SeriesAnalysis/data_eu/europe_cleaned.csv")
+df_eu = ec.read_and_set_df_eu(2019)
+# df_eu = pd.read_csv("SeriesAnalysis/data_eu/europe_cleaned.csv")
 
 
 # 1946
@@ -110,7 +116,7 @@ def check_airline_series(df_airline):
 
     return db_slot
 
-day = 1
+day = 5
 
 df_eu_day = df_eu[df_eu["week day"] == day].copy()
 date_num = dict(zip(np.sort(df_eu_day.day.unique()), range(len(df_eu_day.day.unique()))))
@@ -122,6 +128,7 @@ df_airline = df_eu_day[df_eu_day.airline == airline]
 columns = ["id", "Airline", "A_ICAO", "Time", "InitialDate", "FinalDate", "matched"]
 db_slot = pd.DataFrame(columns=columns)
 
+t = time.time()
 i = 0
 for airline in df_eu.airline.unique():
     print(i, airline)
@@ -129,7 +136,8 @@ for airline in df_eu.airline.unique():
     db_slot = pd.concat([db_slot, check_airline_series(df_airline)], ignore_index=True)
     i += 1
 
+print("time", time.time()-t)
 
-db_slot.to_csv("SeriesAnalysis/data_eu/db_slot_test.csv", index_label=False, index=False)
+db_slot.to_csv("SeriesAnalysis/data_eu/db/db_slot_test" + day_dict[day]+".csv", index_label=False, index=False)
 
 
