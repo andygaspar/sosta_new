@@ -1,30 +1,24 @@
-import time
-
-from SeriesAnalysis.data_eu import eu_conversion as ec
 import pandas as pd
 import numpy as np
-
-test = pd.read_csv("../media/andrea/OS/Users/Andrea")
 
 # aggiungere reference match
 # aggiungere controllo gf
 # aggiungere make df_db_slot
 
-day_dict = {0: "Sunday", 1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday", }
-
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
 
 # airports
-df_airports = pd.read_csv("SeriesAnalysis/data_eu/airports.csv")
-airport_list = df_airports.airport.to_list()
+df_airports = pd.read_csv("data/airports.csv")
+airport_list = df_airports[df_airports.level == 3].airport.to_list()
 
 # df_eu_clean
-df_eu = ec.read_and_set_df_eu(2019)
+df_eu = pd.read_csv("summer_2019.csv")
+# df_eu = ec.read_and_set_df_eu(2019)
 # df_eu = pd.read_csv("SeriesAnalysis/data_eu/europe_cleaned.csv")
 
 
-# 1946
+
 
 def approx_time(t):
     time_approximation = int(t / 10) * 10 if (t // 5) % 2 == 0 else int(t / 10) * 10 + 5
@@ -57,7 +51,7 @@ def check_mean(df_call: pd.DataFrame, is_departure: bool, tol: int, max_occurren
     return False, None, None, None
 
 
-def check_airline_series(df_airline):
+def check_airline_series(df_airline, airport_list):
     tol, max_occurrence, min_series_len = 30, 0.7, 5
 
     columns = ["id", "Airline", "A_ICAO", "Time", "InitialDate", "FinalDate", "matched"]
@@ -84,7 +78,7 @@ def check_airline_series(df_airline):
                 found_arr_series, mean_arrival, init_day, final_day \
                     = check_mean(df_call, False, tol, max_occurrence, min_series_len)
                 if found_arr_series:
-                    id_arrival = airline + departure + arrival + callsign + str(day)
+                    id_arrival = airline + arrival + departure + callsign + str(day)
                     to_append = [id_arrival] + [airline] + [arrival] + [mean_arrival] + [init_day] + [final_day] + ["N"]
                     db_slot = db_slot.append(dict(zip(columns, to_append)), ignore_index=True)
 
@@ -116,28 +110,30 @@ def check_airline_series(df_airline):
 
     return db_slot
 
-day = 5
+day = 1
 
 df_eu_day = df_eu[df_eu["week day"] == day].copy()
 date_num = dict(zip(np.sort(df_eu_day.day.unique()), range(len(df_eu_day.day.unique()))))
 df_eu_day["day_num"] = df_eu_day.day.apply(lambda d: date_num[d])
 
-airline = "RYR"
-df_airline = df_eu_day[df_eu_day.airline == airline]
 
 columns = ["id", "Airline", "A_ICAO", "Time", "InitialDate", "FinalDate", "matched"]
 db_slot = pd.DataFrame(columns=columns)
 
-t = time.time()
+print(df_eu.airline.unique().shape[0], "airlines")
+
 i = 0
 for airline in df_eu.airline.unique():
     print(i, airline)
     df_airline = df_eu_day[df_eu_day.airline == airline]
-    db_slot = pd.concat([db_slot, check_airline_series(df_airline)], ignore_index=True)
+    db_slot = pd.concat([db_slot, check_airline_series(df_airline, airport_list)], ignore_index=True)
     i += 1
 
-print("time", time.time()-t)
 
-db_slot.to_csv("SeriesAnalysis/data_eu/db/db_slot_test" + day_dict[day]+".csv", index_label=False, index=False)
+db_slot[db_slot.matched != "N"]
+
+
+
+# db_slot.to_csv("SeriesAnalysis/data_eu/db_slot_test.csv", index_label=False, index=False)
 
 
