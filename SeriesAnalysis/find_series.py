@@ -9,15 +9,14 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
 
 # airports
-df_airports = pd.read_csv("data/airports.csv")
+df_airports = pd.read_csv("DataRefactor/airports.csv")
+df_eu_airport = pd.read_csv("eu_airport.csv")
 airport_list = df_airports[df_airports.level == 3].airport.to_list()
 
 # df_eu_clean
-df_eu = pd.read_csv("summer_2019.csv")
+df_eu = pd.read_csv("DataSummer/summer_2019.csv")
 # df_eu = ec.read_and_set_df_eu(2019)
 # df_eu = pd.read_csv("SeriesAnalysis/data_eu/europe_cleaned.csv")
-
-
 
 
 def approx_time(t):
@@ -132,8 +131,21 @@ for airline in df_eu.airline.unique():
 
 db_slot[db_slot.matched != "N"]
 
-
+cols_voli = ["id", "airline", "flow", "airport", "icao24", "day", "time", "series",
+                 "CSVT", "gf", "turnaround", "match", "callsign"]
 
 # db_slot.to_csv("SeriesAnalysis/data_eu/db_slot_test.csv", index_label=False, index=False)
 
 
+
+import csv
+eu_airport = []
+with open('airport_space.csv') as csv_file:
+    csv_reader = csv.reader(csv_file, delimiter='\t')
+    line_count = 0
+    for row in csv_reader:
+        print(row[0])
+        eu_airport.append(row[0])
+
+df_eu_airport = pd.DataFrame({"airport":eu_airport})
+df_eu_airport.to_csv("eu_airport.csv", index_label=False, index=False)
