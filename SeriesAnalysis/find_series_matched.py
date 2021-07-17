@@ -54,7 +54,7 @@ def check_mean(df_call: pd.DataFrame, is_departure: bool, tol: int, max_occurren
     return False, None, None, None, None
 
 
-def make_df_voli(is_departure: bool, voli: pd.DataFrame, airport, series, id_fls, match, turn):
+def make_df_voli(db_voli, is_departure: bool, voli: pd.DataFrame, airport, series, id_fls, match, turn):
     dep_arr = "dep_min" if is_departure else "arr_min"
     flow_ = "D" if is_departure else "A"
     flow = [flow_ for _ in range(voli.shape[0])]
@@ -70,7 +70,7 @@ def make_df_voli(is_departure: bool, voli: pd.DataFrame, airport, series, id_fls
                               "day": voli.day_num,
                               "time": voli[dep_arr], "series": ser, "CSVT": csvt, "gf": gf,
                               "turnaround": turns, "match": match, "callsign": voli.callsign})
-    return to_concat
+    return pd.concat([db_voli, to_concat], ignore_index=True)
 
 
 def check_airline_series(airline, df_airline, airport_list, week_day):
@@ -109,21 +109,17 @@ def check_airline_series(airline, df_airline, airport_list, week_day):
 
                     if is_arrival:
                         turn = 30 if arrival in df_eu_airport.airport.to_list() else 90
-                        mean_arrival = voli.arr_min.mean()
+                        mean_arrival = approx_time(voli.arr_min.mean())
                         id_arrival = airline + arrival + departure + callsign + str(week_day)
                         id_arrs = [callsign + arrival + day for day in voli.day]
                         matched = "N"
                         if mean_departure < mean_arrival:
                             matched = id_departure
-                            to_concat = make_df_voli(True, voli, departure, id_departure, id_deps, id_arrs, turn)
-                            db_voli = pd.concat([db_voli, to_concat], ignore_index=True)
-                            to_concat = make_df_voli(False, voli, arrival, id_arrival, id_arrs, None, turn)
-                            db_voli = pd.concat([db_voli, to_concat], ignore_index=True)
+                            db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, id_deps, id_arrs, turn)
+                            db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival, id_arrs, None, turn)
                         else:
-                            to_concat = make_df_voli(True, voli, departure, id_departure, id_deps, None, turn)
-                            db_voli = pd.concat([db_voli, to_concat], ignore_index=True)
-                            to_concat = make_df_voli(False, voli, arrival, id_arrival, id_arrs, None, turn)
-                            db_voli = pd.concat([db_voli, to_concat], ignore_index=True)
+                            db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, id_deps, None, turn)
+                            db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival, id_arrs, None, turn)
                         to_append = \
                             [id_arrival] + [airline] + [arrival] + [mean_arrival] \
                             + [init_day] + [final_day] + [matched]
@@ -131,8 +127,7 @@ def check_airline_series(airline, df_airline, airport_list, week_day):
 
                     else:
                         turn = 30 if arrival in df_eu_airport.airport.to_list() else 90
-                        to_concat = make_df_voli(True, voli, departure, id_departure, id_deps, None, turn)
-                        db_voli = pd.concat([db_voli, to_concat], ignore_index=True)
+                        db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, id_deps, None, turn)
 
 
             # check series arrival
@@ -147,8 +142,7 @@ def check_airline_series(airline, df_airline, airport_list, week_day):
                     id_arrs = [callsign + arrival + day for day in voli.day]
                     to_append = [id_arrival] + [airline] + [arrival] + [mean_arrival] + [init_day] + [final_day] + ["N"]
                     db_slot = db_slot.append(dict(zip(columns, to_append)), ignore_index=True)
-                    to_concat = make_df_voli(False, voli, arrival, id_arrival, id_arrs, None, turn)
-                    db_voli = pd.concat([db_voli, to_concat], ignore_index=True)
+                    db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival, id_arrs, None, turn)
                     # db_voli = pd.concat([db_voli, voli], ignore_index=True)
 
     return db_slot, db_voli

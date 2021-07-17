@@ -109,7 +109,7 @@ def check_airline_series(airline, df_airline, airport_list, week_day):
                     db_slot = db_slot.append(dict(zip(columns, to_append)), ignore_index=True)
 
                     if is_arrival:
-                        mean_arrival = voli.arr_min.mean()
+                        mean_arrival = approx_time(voli.arr_min.mean())
                         id_arrival = airline + arrival + departure + callsign + str(week_day)
                         matched = "N"
                         if mean_departure < mean_arrival:
@@ -159,7 +159,7 @@ for airline in df_eu_day.airline.unique():
     i += 1
 
 
-
+db_slot.to_csv("ok/slot_2018.csv", sep="\t", index=False, index_label=False)
 # db_slot.to_csv("SeriesAnalysis/data_eu/db_slot_test.csv", index_label=False, index=False)
 
 gf = {}
@@ -174,6 +174,9 @@ df_gf = pd.DataFrame(columns=["airport", "airline", "start", "end", "day_num"])
 for airline in gf.keys():
     df_gf = pd.concat([df_gf, gf[airline].get_df()], ignore_index=True)
 df_gf.slots = df_gf.slots.astype(int)
+df_gf.to_csv("ok/gf_test.csv", sep="\t", index=False, index_label=False)
+
+
 
 airline = "RYR"
 gd = Gf(airline, df_airline=db_slot[db_slot.Airline == airline])
