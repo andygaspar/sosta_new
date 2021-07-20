@@ -9,13 +9,13 @@ from SeriesAnalysis.gf import Gf
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
 
-# airports
-df_airports = pd.read_csv("DataRefactor/airports.csv")
-df_eu_airport = pd.read_csv("eu_airport.csv")
-airport_list = df_airports[df_airports.level == 3].airport.to_list()
-
-# df_eu_clean
-df_eu = pd.read_csv("DataSummer/summer_2018.csv")
+# # airports
+# df_airports = pd.read_csv("DataRefactor/airports.csv")
+# df_eu_airport = pd.read_csv("eu_airport.csv")
+# airport_list = df_airports[df_airports.level == 3].airport.to_list()
+#
+# # df_eu_clean
+# df_eu = pd.read_csv("DataSummer/summer_2018.csv")
 
 
 # df_eu = ec.read_and_set_df_eu(2019)
@@ -75,7 +75,7 @@ def make_df_voli(db_voli, is_departure: bool, voli: pd.DataFrame, airport, serie
     return pd.concat([db_voli, to_concat], ignore_index=True)
 
 
-def check_airline_series(airline, df_airline, airport_list, week_day):
+def check_airline_series(airline, df_airline, airport_list, all_airports, week_day):
     tol, max_occurrence, min_series_len = 30, 0.7, 5
 
     columns = ["id", "Airline", "A_ICAO", "Time", "InitialDate", "FinalDate", "matched"]
@@ -110,7 +110,7 @@ def check_airline_series(airline, df_airline, airport_list, week_day):
                     id_deps = [callsign + departure + day for day in voli.day]
 
                     if is_arrival:
-                        turn = 30 if arrival in df_eu_airport.airport.to_list() else 90
+                        turn = 30 if arrival in all_airports else 90
                         mean_arrival = approx_time(voli.arr_min.mean())
                         id_arrival = airline + arrival + departure + callsign + str(week_day)
                         id_arrs = [callsign + arrival + day for day in voli.day]
@@ -132,7 +132,7 @@ def check_airline_series(airline, df_airline, airport_list, week_day):
                         db_slot = db_slot.append(dict(zip(columns, to_append)), ignore_index=True)
 
                     else:
-                        turn = 30 if arrival in df_eu_airport.airport.to_list() else 90
+                        turn = 30 if arrival in all_airports else 90
                         db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, mean_departure,
                                                id_deps, None, turn)
 
@@ -144,7 +144,7 @@ def check_airline_series(airline, df_airline, airport_list, week_day):
                     = check_mean(df_call, False, tol, max_occurrence, min_series_len)
 
                 if found_arr_series:
-                    turn = 30 if arrival in df_eu_airport.airport.to_list() else 90
+                    turn = 30 if arrival in all_airports else 90
                     id_arrival = airline + arrival + departure + callsign + str(week_day)
                     id_arrs = [callsign + arrival + day for day in voli.day]
                     to_append = [id_arrival] + [airline] + [arrival] + [mean_arrival] + [init_day] + [final_day] + ["N"]
@@ -158,48 +158,48 @@ def check_airline_series(airline, df_airline, airport_list, week_day):
 
 # 19437
 # 3634
-week_day = 1
-
-df_eu_day = df_eu[df_eu["week day"] == week_day].copy()
-date_num = dict(zip(np.sort(df_eu_day.day.unique()), range(len(df_eu_day.day.unique()))))
-df_eu_day["day_num"] = df_eu_day.day.apply(lambda d: date_num[d])
-
-columns = ["id", "Airline", "A_ICAO", "Time", "InitialDate", "FinalDate", "matched"]
-db_slot = pd.DataFrame(columns=columns)
-
-print(df_eu_day.airline.unique().shape[0], "airlines")
-
-cols_db_voli = ["id", "airline", "flow", "airport", "icao24", "day", "time", "series",
-                 "CSVT", "gf", "turnaround", "match", "callsign"]
-db_voli = pd.DataFrame(columns=cols_db_voli)
-
-i = 0
-for airline in df_eu_day.airline.unique():
-    print(i, airline)
-    df_airline = df_eu_day[df_eu_day.airline == airline]
-    db_s, db_v = check_airline_series(airline, df_airline, airport_list, week_day)
-    db_slot = pd.concat([db_slot, db_s], ignore_index=True)
-    db_voli = pd.concat([db_voli, db_v], ignore_index=True)
-    i += 1
-
-
-db_slot.to_csv("ok/slot_2018.csv", sep="\t", index=False, index_label=False)
-db_voli.to_csv("ok/voli_2018.csv", sep="\t", index=False, index_label=False)
-# db_slot.to_csv("SeriesAnalysis/data_eu/db_slot_test.csv", index_label=False, index=False)
-
-gf = {}
-for airline in db_slot.Airline.unique():
-    gf[airline] = Gf(airline)
-    gf_air = db_slot[db_slot.Airline == airline]
-    for i in range(gf_air.shape[0]):
-        line = gf_air.iloc[i]
-        gf[airline].add_gf(line.A_ICAO, line.InitialDate, line.FinalDate, line.Time)
-
-df_gf = pd.DataFrame(columns=["airport", "airline", "start", "end", "day_num"])
-for airline in gf.keys():
-    df_gf = pd.concat([df_gf, gf[airline].get_df()], ignore_index=True)
-df_gf.slots = df_gf.slots.astype(int)
-df_gf.to_csv("ok/gf_test.csv", sep="\t", index=False, index_label=False)
+# week_day = 1
+#
+# df_eu_day = df_eu[df_eu["week day"] == week_day].copy()
+# date_num = dict(zip(np.sort(df_eu_day.day.unique()), range(len(df_eu_day.day.unique()))))
+# df_eu_day["day_num"] = df_eu_day.day.apply(lambda d: date_num[d])
+#
+# columns = ["id", "Airline", "A_ICAO", "Time", "InitialDate", "FinalDate", "matched"]
+# db_slot = pd.DataFrame(columns=columns)
+#
+# print(df_eu_day.airline.unique().shape[0], "airlines")
+#
+# cols_db_voli = ["id", "airline", "flow", "airport", "icao24", "day", "time", "series",
+#                  "CSVT", "gf", "turnaround", "match", "callsign"]
+# db_voli = pd.DataFrame(columns=cols_db_voli)
+#
+# i = 0
+# for airline in df_eu_day.airline.unique():
+#     print(i, airline)
+#     df_airline = df_eu_day[df_eu_day.airline == airline]
+#     db_s, db_v = check_airline_series(airline, df_airline, airport_list, week_day)
+#     db_slot = pd.concat([db_slot, db_s], ignore_index=True)
+#     db_voli = pd.concat([db_voli, db_v], ignore_index=True)
+#     i += 1
+#
+#
+# db_slot.to_csv("ok/slot_2018.csv", sep="\t", index=False, index_label=False)
+# db_voli.to_csv("ok/voli_2018.csv", sep="\t", index=False, index_label=False)
+# # db_slot.to_csv("SeriesAnalysis/data_eu/db_slot_test.csv", index_label=False, index=False)
+#
+# gf = {}
+# for airline in db_slot.Airline.unique():
+#     gf[airline] = Gf(airline)
+#     gf_air = db_slot[db_slot.Airline == airline]
+#     for i in range(gf_air.shape[0]):
+#         line = gf_air.iloc[i]
+#         gf[airline].add_gf(line.A_ICAO, line.InitialDate, line.FinalDate, line.Time)
+#
+# df_gf = pd.DataFrame(columns=["airport", "airline", "start", "end", "day_num"])
+# for airline in gf.keys():
+#     df_gf = pd.concat([df_gf, gf[airline].get_df()], ignore_index=True)
+# df_gf.slots = df_gf.slots.astype(int)
+# df_gf.to_csv("ok/gf_test.csv", sep="\t", index=False, index_label=False)
 
 
 

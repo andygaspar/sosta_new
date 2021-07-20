@@ -4,6 +4,7 @@ import numpy as np
 start_minute = np.array([0, 540, 900, 1140])
 end_minute = np.array([539, 899, 1139, 1439])
 
+
 class Day:
     def __init__(self, day):
         self.day = day
@@ -51,3 +52,20 @@ class Gf:
         for i in range(df_airline.shape[0]):
             line = df_airline.iloc[i]
             self.add_gf(line.A_ICAO, line.InitialDate, line.FinalDate, line.Time)
+
+
+def make_df_gf(db_slot):
+    gf = {}
+    for airline in db_slot.Airline.unique():
+        gf[airline] = Gf(airline)
+        gf_air = db_slot[db_slot.Airline == airline]
+        for i in range(gf_air.shape[0]):
+            line = gf_air.iloc[i]
+            gf[airline].add_gf(line.A_ICAO, line.InitialDate, line.FinalDate, line.Time)
+
+    df_gf = pd.DataFrame(columns=["airport", "airline", "start", "end", "day_num"])
+    for airline in gf.keys():
+        df_gf = pd.concat([df_gf, gf[airline].get_df()], ignore_index=True)
+    df_gf.slots = df_gf.slots.astype(int)
+    return df_gf
+
