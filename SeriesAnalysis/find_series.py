@@ -79,7 +79,7 @@ def make_df_voli(db_voli, is_departure: bool, voli: pd.DataFrame, airport, serie
     return pd.concat([db_voli, to_concat], ignore_index=True)
 
 
-def check_airline_series(airline, df_airline, airport_list_3, all_airports, week_day, df_18=None):
+def check_airline_series(airline, df_airline, airport_list_3, lev12_airports, all_airports, week_day, df_18=None):
     tol, max_occurrence, min_series_len = 30, 0.7, 5
 
     columns = ["id", "Airline", "A_ICAO", "Time", "InitialDate", "FinalDate", "matched"]
@@ -99,63 +99,80 @@ def check_airline_series(airline, df_airline, airport_list_3, all_airports, week
 
             departure, arrival = df_call.departure.mode().values[0], df_call.arrival.mode().values[0]
 
-            is_departure, is_arrival = departure in airport_list_3, arrival in airport_list_3
+            if departure != arrival:
 
-            if is_departure:
-                found_dep_series, mean_departure, init_day, final_day, voli \
-                    = check_mean(df_call, True, tol, max_occurrence, min_series_len)
+                is_departure, is_arrival = departure in airport_list_3, arrival in airport_list_3
 
-                if found_dep_series:
-                    id_departure = airline + departure + arrival + callsign + str(week_day)
-                    to_append = \
-                        [id_departure] + [airline] + [departure] + [mean_departure] + [init_day] + \
-                        [final_day] + ["N"]
-                    db_slot = db_slot.append(dict(zip(columns, to_append)), ignore_index=True)
-                    id_deps = [callsign + departure + day for day in voli.day]
+                if is_departure:
+                    found_dep_series, mean_departure, init_day, final_day, voli \
+                        = check_mean(df_call, True, tol, max_occurrence, min_series_len)
 
-                    if is_arrival:
+                    if found_dep_series:
+                        id_departure = airline + departure + arrival + callsign + str(week_day)
+                        to_append = [id_departure, airline, departure, mean_departure, init_day, final_day, "N"]
+                        db_slot = db_slot.append(dict(zip(columns, to_append)), ignore_index=True)
+                        id_deps = [callsign + departure + day for day in voli.day]
+
+                        if is_arrival:
+                            turn = 30 if arrival in all_airports else 90
+                            mean_arrival = approx_time(voli.arr_min.mean())
+                            id_arrival = airline + arrival + departure + callsign + str(week_day)
+                            id_arrs = [callsign + arrival + day for day in voli.day]
+                            matched = "N"
+                            if mean_departure < mean_arrival:
+                                matched = id_departure
+                                db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, mean_departure,
+                                                       id_deps, id_arrs, turn, df_18)
+                                db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival, mean_arrival,
+                                                       id_arrs, None, turn, df_18)
+                            else:
+                                db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, mean_departure,
+                                                       id_deps, None, turn, df_18)
+                                db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival, mean_arrival,
+                                                       id_arrs, None, turn, df_18)
+                            to_append = \
+                                [id_arrival] + [airline] + [arrival] + [mean_arrival] \
+                                + [init_day] + [final_day] + [matched]
+                            db_slot = db_slot.append(dict(zip(columns, to_append)), ignore_index=True)
+
+                        else:
+                            turn = 30 if arrival in all_airports else 90
+                            if arrival in lev12_airports:
+                                mean_arrival = approx_time(voli.arr_min.mean())
+                                id_arrival = airline + arrival + departure + callsign + str(week_day)
+                                id_arrs = [callsign + arrival + day for day in voli.day]
+                                db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival, mean_arrival,
+                                                       id_arrs, None, turn, df_18)
+                            else:
+                                id_arrs = None
+                            db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, mean_departure,
+                                                   id_deps, id_arrs, turn, df_18)
+
+
+
+                # check series arrival
+                if is_arrival and not is_departure:
+
+                    found_arr_series, mean_arrival, init_day, final_day, voli \
+                        = check_mean(df_call, False, tol, max_occurrence, min_series_len)
+
+                    if found_arr_series:
                         turn = 30 if arrival in all_airports else 90
-                        mean_arrival = approx_time(voli.arr_min.mean())
                         id_arrival = airline + arrival + departure + callsign + str(week_day)
                         id_arrs = [callsign + arrival + day for day in voli.day]
                         matched = "N"
-                        if mean_departure < mean_arrival:
+                        if departure in lev12_airports:
+                            id_departure = airline + departure + arrival + callsign + str(week_day)
                             matched = id_departure
+                            mean_departure = approx_time(voli.dep_min.mean())
+                            id_deps = [callsign + departure + day for day in voli.day]
                             db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, mean_departure,
                                                    id_deps, id_arrs, turn, df_18)
-                            db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival, mean_arrival,
-                                                   id_arrs, None, turn, df_18)
-                        else:
-                            db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, mean_departure,
-                                                   id_deps, None, turn, df_18)
-                            db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival, mean_arrival,
-                                                   id_arrs, None, turn, df_18)
-                        to_append = \
-                            [id_arrival] + [airline] + [arrival] + [mean_arrival] \
-                            + [init_day] + [final_day] + [matched]
+                        to_append = [id_arrival, airline, arrival, mean_arrival, init_day, final_day, matched]
                         db_slot = db_slot.append(dict(zip(columns, to_append)), ignore_index=True)
+                        db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival,
+                                               mean_arrival, id_arrs, None, turn, df_18)
 
-                    else:
-                        turn = 30 if arrival in all_airports else 90
-                        db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, mean_departure,
-                                               id_deps, None, turn, df_18)
-
-
-            # check series arrival
-            if is_arrival and not is_departure:
-
-                found_arr_series, mean_arrival, init_day, final_day, voli \
-                    = check_mean(df_call, False, tol, max_occurrence, min_series_len)
-
-                if found_arr_series:
-                    turn = 30 if arrival in all_airports else 90
-                    id_arrival = airline + arrival + departure + callsign + str(week_day)
-                    id_arrs = [callsign + arrival + day for day in voli.day]
-                    to_append = [id_arrival] + [airline] + [arrival] + [mean_arrival] + [init_day] + [final_day] + ["N"]
-                    db_slot = db_slot.append(dict(zip(columns, to_append)), ignore_index=True)
-                    db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival,
-                                           mean_arrival, id_arrs, None, turn, df_18)
-                    # db_voli = pd.concat([db_voli, voli], ignore_index=True)
 
     return db_slot, db_voli
 
