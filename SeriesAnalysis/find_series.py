@@ -87,6 +87,7 @@ def check_airline_series(airline, df_airline, airport_list_3, lev12_airports, al
 
     cols_voli = ["id", "airline", "flow", "airport", "icao24", "day", "time", "series",
                  "CSVT", "gf", "turnaround", "match", "callsign"]
+
     db_voli = pd.DataFrame(columns=cols_voli)
 
     for callsign in df_airline.callsign.unique():
@@ -130,19 +131,19 @@ def check_airline_series(airline, df_airline, airport_list_3, lev12_airports, al
                                                        id_deps, None, turn, df_18)
                                 db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival, mean_arrival,
                                                        id_arrs, None, turn, df_18)
-                            to_append = \
-                                [id_arrival] + [airline] + [arrival] + [mean_arrival] \
-                                + [init_day] + [final_day] + [matched]
+                            to_append = [id_arrival, airline, arrival, mean_arrival, init_day, final_day, matched]
                             db_slot = db_slot.append(dict(zip(columns, to_append)), ignore_index=True)
 
                         else:
                             turn = 30 if arrival in all_airports else 90
                             if arrival in lev12_airports:
                                 mean_arrival = approx_time(voli.arr_min.mean())
-                                id_arrival = airline + arrival + departure + callsign + str(week_day)
+                                # here the series is refered to the departure one
                                 id_arrs = [callsign + arrival + day for day in voli.day]
-                                db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival, mean_arrival,
+                                db_voli = make_df_voli(db_voli, False, voli, arrival, id_departure, mean_arrival,
                                                        id_arrs, None, turn, df_18)
+                                if mean_departure < mean_arrival:
+                                    id_arrs = None
                             else:
                                 id_arrs = None
                             db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, mean_departure,
@@ -162,54 +163,21 @@ def check_airline_series(airline, df_airline, airport_list_3, lev12_airports, al
                         id_arrs = [callsign + arrival + day for day in voli.day]
                         matched = "N"
                         if departure in lev12_airports:
-                            id_departure = airline + departure + arrival + callsign + str(week_day)
-                            matched = id_departure
+                            # here the series is refered to the arrival one
                             mean_departure = approx_time(voli.dep_min.mean())
                             id_deps = [callsign + departure + day for day in voli.day]
-                            db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, mean_departure,
-                                                   id_deps, id_arrs, turn, df_18)
+                            if mean_departure < mean_arrival:
+                                db_voli = make_df_voli(db_voli, True, voli, departure, id_arrival, mean_departure,
+                                                       id_deps, id_arrs, turn, df_18)
+                            else:
+                                db_voli = make_df_voli(db_voli, True, voli, departure, id_arrival, mean_departure,
+                                                       id_deps, None, turn, df_18)
                         to_append = [id_arrival, airline, arrival, mean_arrival, init_day, final_day, matched]
                         db_slot = db_slot.append(dict(zip(columns, to_append)), ignore_index=True)
                         db_voli = make_df_voli(db_voli, False, voli, arrival, id_arrival,
                                                mean_arrival, id_arrs, None, turn, df_18)
 
-
     return db_slot, db_voli
 
-#21961
-
-# 19437
-# 3634
-# week_day = 1
-#
-# df_eu_day = df_eu[df_eu["week day"] == week_day].copy()
-# date_num = dict(zip(np.sort(df_eu_day.day.unique()), range(len(df_eu_day.day.unique()))))
-# df_eu_day["day_num"] = df_eu_day.day.apply(lambda d: date_num[d])
-#
-# columns = ["id", "Airline", "A_ICAO", "Time", "InitialDate", "FinalDate", "matched"]
-# db_slot = pd.DataFrame(columns=columns)
-#
-# print(df_eu_day.airline.unique().shape[0], "airlines")
-#
-# cols_db_voli = ["id", "airline", "flow", "airport", "icao24", "day", "time", "series",
-#                  "CSVT", "gf", "turnaround", "match", "callsign"]
-# db_voli = pd.DataFrame(columns=cols_db_voli)
-#
-# voli_2018 = pd.read_csv("ok/voli_2018.csv", sep="\t")
-# voli_2018["gf"] = [False for _ in range(voli_2018.shape[0])]
-#
-# i = 0
-# for airline in df_eu_day.airline.unique():
-#     print(i, airline)
-#     df_airline, df_air_18 = df_eu_day[df_eu_day.airline == airline], voli_2018[voli_2018.airline == airline]
-#     db_s, db_v = check_airline_series(airline, df_airline, df_air_18, airport_list_3, week_day)
-#     db_slot = pd.concat([db_slot, db_s], ignore_index=True)
-#     db_voli = pd.concat([db_voli, db_v], ignore_index=True)
-#     i += 1
-#
-# db_slot.to_csv("ok/slot_2019.csv", sep="\t", index=False, index_label=False)
-# db_voli.to_csv("ok/voli_2019.csv", sep="\t", index=False, index_label=False)
-
-# db_slot.to_csv("SeriesAnalysis/data_eu/db_slot_test.csv", index_label=False, index=False)
 
 

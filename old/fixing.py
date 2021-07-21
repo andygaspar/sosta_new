@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-db_v = pd.read_csv("DBvoli_Friday.txt", sep="\t")
+db_v = pd.read_csv("../DBvoli_Friday.txt", sep="\t")
 
 match = db_v[db_v.match != -1]
 match = db_v.drop_duplicates(subset="match")
