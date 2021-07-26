@@ -27,7 +27,10 @@ def check_mean(df_call: pd.DataFrame, airport, is_departure: bool, tol: int, max
 
             db_voli = df_call_airport[(df_call_airport.day_num >= init_day) & (df_call_airport.day_num <= final_day)]
 
-            return True, approx_time(mean), init_day, final_day, db_voli
+            if db_voli.shape[0] >= 5:
+                return True, approx_time(mean), init_day, final_day, db_voli
+            else:
+                return False, None, None, None, None
         else:
             return False, None, None, None, None
 
