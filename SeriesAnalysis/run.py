@@ -5,6 +5,7 @@ from SeriesAnalysis import gf as granf
 from SeriesAnalysis import new_entrant as ne
 from SeriesAnalysis import find_series as fs
 from SeriesAnalysis import db_voli as db
+from SeriesAnalysis import make_struttura as ms
 import multiprocessing
 import time
 
@@ -63,6 +64,8 @@ df_eu_18 = pd.read_csv("DataSummer/summer_2018.csv")
 # df_eu_19
 df_eu_19 = pd.read_csv("DataSummer/summer_2019.csv")
 
+save = True
+
 for week_day in range(7):
     print("********* ", week_day, " ************")
 
@@ -91,12 +94,15 @@ for week_day in range(7):
 
     voli_18["time"] = voli_18.time.astype(int)
     voli_18["gf"] = [False for _ in range(voli_18.shape[0])]
-    db_slot_18.to_csv("results/18/slot_2018_" + day_dict[week_day] + ".txt", sep="\t", index=False, index_label=False)
-    voli_18.to_csv("results/18/voli_2018_" + day_dict[week_day] + ".txt", sep="\t", index=False, index_label=False)
+    if save:
+        db_slot_18.to_csv("results/18/slot_2018_" + day_dict[week_day] + ".txt", sep="\t", index=False,
+                          index_label=False)
+        voli_18.to_csv("results/18/voli_2018_" + day_dict[week_day] + ".txt", sep="\t", index=False, index_label=False)
 
     df_gf = granf.make_df_gf(db_slot_18)
-    df_gf.to_csv("results/19/" + day_dict[week_day] + "/gf_" + day_dict[week_day] + ".txt", sep="\t", index=False,
-                 index_label=False)
+    if save:
+        df_gf.to_csv("results/19/" + day_dict[week_day] + "/gf_" + day_dict[week_day] + ".txt", sep="\t", index=False,
+                     index_label=False)
 
     df_eu_day_19 = df_eu_19[df_eu_19["week day"] == week_day].copy()
     date_num_19 = dict(zip(np.sort(df_eu_day_19.day.unique()), range(len(df_eu_day_19.day.unique()))))
@@ -125,16 +131,17 @@ for week_day in range(7):
         v_air, gf_air = voli_19[voli_19.airline == airline], df_gf[df_gf.airline == airline]
         new_entrant = pd.concat([new_entrant, ne.make_new_entrant(airline, v_air, gf_air, airport_list)],
                                 ignore_index=True)
-
-    new_entrant.to_csv("results/19/" + day_dict[week_day] + "/new_entrant_" + day_dict[week_day] + ".txt",
-                       sep="\t", index=False, index_label=False)
+    if save:
+        new_entrant.to_csv("results/19/" + day_dict[week_day] + "/new_entrant_" + day_dict[week_day] + ".txt",
+                           sep="\t", index=False, index_label=False)
 
     series_dict = dict(zip(db_slot_19.id, range(db_slot_19.id.shape[0])))
     db_slot_19.id = db_slot_19.id.apply(lambda fl: series_dict[fl])
     db_slot_19.matched = db_slot_19.matched.apply(lambda fl: series_dict[fl] if fl != "N" else "N")
 
-    db_slot_19.to_csv("results/19/" + day_dict[week_day] + "/db_slot_" + day_dict[week_day] + ".txt",
-                      sep="\t", index=False, index_label=False)
+    if save:
+        db_slot_19.to_csv("results/19/" + day_dict[week_day] + "/db_slot_" + day_dict[week_day] + ".txt",
+                          sep="\t", index=False, index_label=False)
 
     id_dict = dict(zip(voli_19.id, range(voli_19.id.shape[0])))
     voli_19.id = voli_19.id.apply(lambda fl: id_dict[fl])
@@ -142,5 +149,8 @@ for week_day in range(7):
     voli_19.series = voli_19.series.apply(lambda fl: series_dict[fl])
 
     db_voli = db.make_db_voli(voli_19)
-    db_voli.to_csv("results/19/" + day_dict[week_day] + "/db_voli_" + day_dict[week_day] + ".txt",
-                   sep="\t", index=False, index_label=False)
+    if save:
+        db_voli.to_csv("results/19/" + day_dict[week_day] + "/db_voli_" + day_dict[week_day] + ".txt",
+                       sep="\t", index=False, index_label=False)
+
+ms.make_struttura()

@@ -2,27 +2,25 @@ import pandas as pd
 import numpy as np
 
 
-
 def approx_time(t):
     time_approximation = int(t / 10) * 10 if (t // 5) % 2 == 0 else int(t / 10) * 10 + 5
     return time_approximation
 
 
-def check_mean(df_call: pd.DataFrame, is_departure: bool, tol: int, max_occurrence: float, min_series_len: int):
+def check_mean(df_call: pd.DataFrame, airport, is_departure: bool, tol: int, max_occurrence: float,
+               min_series_len: int):
     dep_arr = "dep_min" if is_departure else "arr_min"
     airport_dep_arr = "departure" if is_departure else "arrival"
 
-    airport = df_call[airport_dep_arr].mode().values[0]
     df_call_airport = df_call[df_call[airport_dep_arr] == airport]
 
     if df_call_airport.shape[0] >= min_series_len:
         mean = df_call_airport[dep_arr].mean()
-        if df_call_airport[(df_call_airport[dep_arr] <= mean + tol)
-                           & (df_call_airport[dep_arr] >= mean - tol)].shape[0] \
-                >= df_call_airport.shape[0] * max_occurrence:
-            df_call_airp_filtered = df_call_airport[(df_call_airport[dep_arr] <= mean + 400)
-                                                    & (df_call_airport[dep_arr] >= mean - 400)]
-            mean = df_call_airp_filtered[dep_arr].mean()
+        df_30 = df_call_airport[(df_call_airport[dep_arr] <= mean + tol) & (df_call_airport[dep_arr] >= mean - tol)]
+        if df_30.shape[0] >= df_call_airport.shape[0] * max_occurrence:
+            df_call_airp_filtered = df_call_airport[(df_call_airport[dep_arr] <= mean + 180)
+                                                    & (df_call_airport[dep_arr] >= mean - 60)]
+            mean = df_30[dep_arr].mean()
 
             days = df_call_airp_filtered.sort_values("day_num").day_num.to_list()
             init_day, final_day = days[0], days[-1]
@@ -55,7 +53,6 @@ def check_gf(voli, voli_18, voli_18_air, time):
 
 def make_df_voli(db_voli, is_departure: bool, voli: pd.DataFrame, airport, series,
                  time, id_fls, match, turn, voli_18):
-
     if voli_18 is not None:
         dep_arr, flow_ = ("D", "D") if is_departure else ("A", "A")
         v_18_air = voli_18[(voli_18.airport == airport) & (voli_18.flow == "D")]
@@ -106,7 +103,7 @@ def check_airline_series(airline, df_airline, airport_list_3, lev12_airports, al
 
                 if is_departure:
                     found_dep_series, mean_departure, init_day, final_day, voli \
-                        = check_mean(df_call, True, tol, max_occurrence, min_series_len)
+                        = check_mean(df_call, departure, True, tol, max_occurrence, min_series_len)
 
                     if found_dep_series:
                         id_departure = airline + departure + arrival + callsign + str(week_day)
@@ -149,19 +146,18 @@ def check_airline_series(airline, df_airline, airport_list_3, lev12_airports, al
                             db_voli = make_df_voli(db_voli, True, voli, departure, id_departure, mean_departure,
                                                    id_deps, id_arrs, turn, df_18)
 
-
-
                 # check series arrival
-                if is_arrival and not is_departure:
+                elif is_arrival:
 
                     found_arr_series, mean_arrival, init_day, final_day, voli \
-                        = check_mean(df_call, False, tol, max_occurrence, min_series_len)
+                        = check_mean(df_call, arrival, False, tol, max_occurrence, min_series_len)
 
                     if found_arr_series:
-                        turn = 30 if arrival in all_airports else 90
+                        turn = 30 if departure in all_airports else 90
                         id_arrival = airline + arrival + departure + callsign + str(week_day)
                         id_arrs = [callsign + arrival + day for day in voli.day]
                         matched = "N"
+                        # check airport lev12 for departure
                         if departure in lev12_airports:
                             # here the series is refered to the arrival one
                             mean_departure = approx_time(voli.dep_min.mean())
@@ -178,6 +174,3 @@ def check_airline_series(airline, df_airline, airport_list_3, lev12_airports, al
                                                mean_arrival, id_arrs, None, turn, df_18)
 
     return db_slot, db_voli
-
-
-
