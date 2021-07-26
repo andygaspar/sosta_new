@@ -1,0 +1,14 @@
+1) numero di voli di linea individuati: complessivi, per giorno settimanale, per tutto lo spazio aereo considerato,
+per singolo aeroporto
+2) numero e lunghezza delle serie individuate: in particolare proporrei una tabella che riporti per ogni
+possibile lunghezza il numero di serie individuate
+3) numero di grandfather right per aeroporto per giorno rispetto alle slot disponibili: al fine di
+individuare quali sono gli aeroporti che appaiono congestionati
+
+I dati potrebbero essere organizzati in forma normale per essere memorizzati in un database in modo
+da estrarre eventuali statistiche su richiesta
+
+
+io metterei anche per ogni giorno il numero di serie che contengono il giorno stesso
+per esempio, 5 serie il primo giorno, 10 serie il secondo il terzo etc, 50 serie il sesto giorno etc
+Probabilmente farei un grafico separato per ogni giorno della settimana
