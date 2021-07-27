@@ -95,7 +95,7 @@ print(fl_18.to_latex(index=False, caption="FLIGHTS 2018"))
 
 print(sl_18.to_latex(index=False, caption="SERIES 2018"))
 
-plot_series_len(slot_18, 2018, True)
+plot_series_len(slot_18, 2018, False)
 
 
 fl_19, sl_19 = make_fl_analysis(voli_19, slot_19, 2019)
@@ -103,6 +103,11 @@ print(fl_19.to_latex(index=False, caption="FLIGHTS 2019"))
 
 print(sl_19.to_latex(index=False, caption="SERIES 2019"))
 
-plot_series_len(slot_19, 2019, True)
+plot_series_len(slot_19, 2019, False)
 
-plot_series_per_day(voli_19, 2019, True)
+plot_series_per_day(voli_19, 2019, False)
+
+voli_18.to_csv("DataGathered/voli_18.csv", index=False, index_label=False)
+voli_19.to_csv("DataGathered/voli_19.csv", index=False, index_label=False)
+slot_18.to_csv("DataGathered/slot_18.csv", index=False, index_label=False)
+slot_19.to_csv("DataGathered/slot_19.csv", index=False, index_label=False)
