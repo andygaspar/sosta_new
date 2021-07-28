@@ -111,3 +111,5 @@ voli_18.to_csv("DataGathered/voli_18.csv", index=False, index_label=False)
 voli_19.to_csv("DataGathered/voli_19.csv", index=False, index_label=False)
 slot_18.to_csv("DataGathered/slot_18.csv", index=False, index_label=False)
 slot_19.to_csv("DataGathered/slot_19.csv", index=False, index_label=False)
+
+summer = pd.read_csv("DataSummer/summer_2018.csv")
